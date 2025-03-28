@@ -33,12 +33,12 @@ def load_sdlc_app():
                     graph = graph_builder.setup_graph()
                     DisplayResultStreamlit(graph,user_message).display_result_on_ui()
                 except Exception as e:
-                    st.error(f"Error: Graph setup failed - {e}")
+                    st.error(f"Error: Graph setup failed - {e}  \n\n Please refresh the page and try again.")
                     return
                 
 
             except Exception as e:
-                 raise ValueError(f"Error Occurred with Exception : {e}")
+                 raise ValueError(f"Error Occurred with Exception : {e} \n\n Please refresh the page and try again.")
             
 
         
