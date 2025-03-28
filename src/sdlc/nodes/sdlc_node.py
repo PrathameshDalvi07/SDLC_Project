@@ -277,6 +277,8 @@ class SDLCNode:
         with open(filename, "w") as f:
             f.write(f"{imports}\n{code}")
         st.write(f"__Code saved to {filename}.__")
+        with open(filename, "r") as f:
+            st.download_button(label="Download File", data = f, file_name = filename, mime="text/plain")
         return None
     
     
