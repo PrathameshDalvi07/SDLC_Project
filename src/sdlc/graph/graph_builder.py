@@ -22,8 +22,7 @@ class GraphBuilder:
         self.graph_builder.add_node("Revised User Stories",self.sdlc_node.revised_user_stories)
         self.graph_builder.add_node("Generate Code",self.sdlc_node.generate_code)
         self.graph_builder.add_node("Check Code",self.sdlc_node.code_check)
-        # self.graph_builder.add_node("Code Run",self.sdlc_node.code_run)
-        # self.graph_builder.add_node("Code Test",self.sdlc_node.code_test)
+        self.graph_builder.add_node("Code Run",self.sdlc_node.code_run)
         self.graph_builder.add_node("Code Review Human Feedback",self.sdlc_node.human_loop_code_review)
         self.graph_builder.add_node("Revised Code",self.sdlc_node.revised_code)
 
@@ -44,8 +43,7 @@ class GraphBuilder:
         self.graph_builder.add_edge("Revised Code","Code Review Human Feedback")
 
 
-        # self.graph_builder.add_edge("Code Run","Code Test")
-        # self.graph_builder.add_edge("Code Run",END)
+        self.graph_builder.add_edge("Code Run",END)
 
     def setup_graph(self):
         self.sdlc_graph()

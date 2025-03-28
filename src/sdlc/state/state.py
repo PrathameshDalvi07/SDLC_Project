@@ -14,3 +14,4 @@ class State(TypedDict):
     error: str
     generation: str
     iterations: int
+    test_cases: str

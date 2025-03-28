@@ -1,9 +1,7 @@
 import uuid
 import streamlit as st
-from langchain_core.messages import HumanMessage,AIMessage
 from src.sdlc.state.state import State
 
-# st.session_state.messages = []
 thread = str(uuid.uuid4())
 config = {"configurable": { "thread_id": thread }}
 
@@ -19,38 +17,22 @@ class DisplayResultStreamlit:
         messages = {'query':[("user", user_message)], 'messages': [("user", user_message)],"initial_user_stories":"", "extra_message": "", "human_feedback": "", "revised_query": user_message, "iterations" : 0, "generation": ""}
 
         if state.next != ():
-            print("state.next ========================================= ", state.next[0])
-            print("user message ========================================= ", user_message)
             if  state.next[0] == 'Product Owner Review':
                 if user_message != 'yes':
-                    # st.session_state.messages.append(HumanMessage(content=user_message))
-                    # with st.chat_message("user"):
-                    #     st.write(user_message)
                     messages = {'messages':"", "revised_query": user_message, "human_feedback": "Revised User Stories"}
                     graph.update_state(config, messages)
                 messages = None
             
             elif state.next[0] == 'Code Review Human Feedback':
                 if user_message != 'no':
-                    # st.session_state.messages.append(HumanMessage(content=user_message))
-                    # with st.chat_message("user"):
-                    #     st.write(user_message)
                     messages = {'messages': user_message, "revised_query": "", "human_feedback": "Code Review Human Feedback"}
                     graph.update_state(config, messages)
                 messages = None
 
-        # for msg in st.session_state.messages:
-        #     if msg.type == 'human':
-        #         with st.chat_message("user"):
-        #             st.write(msg.content)
-        #     elif msg.type == 'ai':
-        #         with st.chat_message("assistant"):
-        #             st.write(msg.content) 
+            # elif state.next[0] == 'Code Test':
 
         events = graph.stream(messages,config, stream_mode="values")
         for event in events:
-            # if messages is not None:
-            #     st.session_state.messages.append(event['messages'][-1])
             if event['messages'][-1].type == 'human':
                 if event['messages'][-1].content:
                     with st.chat_message("user"):

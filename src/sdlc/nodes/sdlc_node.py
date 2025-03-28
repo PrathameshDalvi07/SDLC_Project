@@ -22,20 +22,20 @@ class SDLCNode:
 
     def generate_user_stories(self, state: State):
         print("generate_user_stories --------------------------------------")
-        prompt = f"Summarize the user project idea {state['revised_query']} into a short, clear description of user stories that explain what the user wants to build and why, focusing on the key features and goals of the project."
+        prompt = f"Summarize the user project idea {state['revised_query']} into a short, clear description of user stories that explain what the user wants to build and why, focusing on the key features and goals of the project.Write a User story NO Code needed."
         response = self.llm.invoke(prompt)
         messages = response
         initial_user_stories = response
-        extra_message = "__Is the user story correct? (yes/no) If no, please specify the required changes.__"
+        extra_message = "__Is the user story correct? ('yes'/'no') If 'no', please specify the required changes.__"
         return {"messages":messages, "initial_user_stories": initial_user_stories, "extra_message": extra_message}
     
     def revised_user_stories(self, state: State):
         print("revised_user_stories --------------------------------------")
-        prompt = f"Given the revised query {state['revised_query']}, update the user stories to reflect the changes while maintaining clarity and alignment with the project's goals. If needed, refer to the previous {state['initial_user_stories']} to ensure consistency and completeness. The updated user stories should remain concise and clearly describe what the user wants to build and why, focusing on the key features and objectives."
+        prompt = f"Given the revised query {state['revised_query']}, update the user stories to reflect the changes while maintaining clarity and alignment with the project's goals. If needed, refer to the previous {state['initial_user_stories']} to ensure consistency and completeness. The updated user stories should remain concise and clearly describe what the user wants to build and why, focusing on the key features and objectives..Write a User story NO Code needed."
         response = self.llm.invoke(prompt)
         messages = response
         initial_user_stories = response
-        extra_message = "__Does this revised user story accurately reflect the requirements? (yes/no) If no, please specify the required changes.__"
+        extra_message = "__Does this revised user story accurately reflect the requirements? ('yes'/'no') If 'no', please specify the required changes.__"
         return {"messages":messages, "initial_user_stories": initial_user_stories, "extra_message": extra_message, "human_feedback": "", "iterations": 0}
     
     def human_loop_product_owner_review(self, state: State):
@@ -65,7 +65,7 @@ class SDLCNode:
         
         messages = state["initial_user_stories"].content
         iterations = state["iterations"]
-        code_solution = self.code_gen_chain.invoke(f"Generate a code solution by User story {messages}")
+        code_solution = self.code_gen_chain.invoke(f"Generate a standalone code solution based on the user story: {messages}. Ensure the code is complete, self-contained, and includes a proper '__main__' entry point for execution.")
 
         messages = [
             (
@@ -101,7 +101,6 @@ class SDLCNode:
         def install_module(module_name: str):
             """
             Install the module using pip.
-
             Args:
                 module_name (str): The name of the module to install
             """
@@ -110,10 +109,8 @@ class SDLCNode:
         def check_imports(imports: str):
             """
             Check if the necessary modules are installed and install them if not.
-
             Args:
                 imports (str): The import statements
-
             Raises:
                 ImportError: If a module cannot be installed
             """
@@ -146,7 +143,7 @@ class SDLCNode:
                 "messages": messages,
                 "iterations": iterations,
                 "error": "yes",
-                "extra_message": "__Provide feedback? (yes/no) If 'yes',  please specify the required changes and if 'no', the code will run in the web browser.__",
+                "extra_message": "__Provide feedback? ('yes'/'no') If 'yes',  please specify the required changes and if 'no', the code will run in the web browser.__",
             }
 
         # Check execution
@@ -206,7 +203,7 @@ class SDLCNode:
         print("should_continue--------------------------------------  ",input)
         if input == "Code Review Human Feedback":
             return "Revised Code"
-        return "END"
+        return "Code Run"
         # return "Design Docs"
 
     def human_loop_code_review(self, state: State):
@@ -225,7 +222,7 @@ class SDLCNode:
         
         messages = state["initial_user_stories"].content
         iterations = state["iterations"]
-        code_solution = self.code_gen_chain.invoke(f"Based on the feedback provided {state['messages']}, update the existing code {state['generation']} as needed. Ensure that the revised code correctly addresses the feedback while maintaining clarity, efficiency, and functionality.")
+        code_solution = self.code_gen_chain.invoke(f"Update the existing code {state['generation']} based on the feedback {state['messages']}. Ensure the revised code is standalone, fully functional, and includes a proper '__main__' entry point for execution while maintaining clarity and efficiency.")
 
         messages = [
             (
@@ -237,6 +234,7 @@ class SDLCNode:
         return {"generation": code_solution, "messages": messages, "iterations": iterations, "extra_message": "__Any changes needed? (yes/no) If yes, specify. If no, the code will run in the browser.__"}
 
     def code_run(self, state: State):
+        print("code_run --------------------------------------")
         """
         Run code in the Streamlit app.
         Args:
@@ -252,8 +250,6 @@ class SDLCNode:
         code = code_solution.code
         try:
             combined_code = f"{imports}\n{code}"
-            print(f"CODE TO TEST: {combined_code}")
-
             result = subprocess.run(
                     ["python", "-c", combined_code],
                     capture_output=True,
@@ -261,10 +257,28 @@ class SDLCNode:
                 )
             st.code(result.stdout if result.stdout else result.stderr, language="python")
             print("Code executed successfully.")
-            print("Output:                      ", result)
         except Exception as e:
-            print("---iiiiiii---")
+            print(f"Error executing code: {e}")
         return None
     
-    def code_test(self, state: State):
-        pass
+    def write_test_cases(self, state: State):
+        print("write_test_cases --------------------------------------")
+        """
+        Write test cases for the code
+        Args:
+            state (dict): The current graph state
+        Returns:
+            str: Next node to call
+        """
+        messages = state["initial_user_stories"].content
+        iterations = state["iterations"]
+        code_solution = self.code_gen_chain.invoke(f"Generate test cases for the code {state['generation']} based on the user story {messages}. Ensure the test cases are comprehensive and cover all aspects of the code.")
+
+        messages = [
+            (
+                "assistant",
+                f"{code_solution.prefix} || {code_solution.imports} \n{code_solution.code}",
+            )
+        ]
+        iterations = iterations + 1
+        return {"generation": code_solution, "messages": messages, "iterations": iterations, "extra_message": "__Any changes needed? (yes/no) If yes, specify. If no, the code will run in the browser.__"}
