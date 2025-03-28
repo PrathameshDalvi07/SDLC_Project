@@ -22,7 +22,7 @@ class SDLCNode:
 
     def generate_user_stories(self, state: State):
         print("generate_user_stories --------------------------------------")
-        prompt = f"Summarize the user’s project idea {state['revised_query']} into a short, clear description of user stories that explain what the user wants to build and why, focusing on the key features and goals of the project."
+        prompt = f"Summarize the user project idea {state['revised_query']} into a short, clear description of user stories that explain what the user wants to build and why, focusing on the key features and goals of the project."
         response = self.llm.invoke(prompt)
         messages = response
         initial_user_stories = response
