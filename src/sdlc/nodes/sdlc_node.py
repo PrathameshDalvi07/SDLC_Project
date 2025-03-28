@@ -225,7 +225,7 @@ class SDLCNode:
         
         messages = state["initial_user_stories"].content
         iterations = state["iterations"]
-        code_solution = self.code_gen_chain.invoke(f"Based on the feedback provided {state["messages"]}, update the existing code {state["generation"]} as needed. Ensure that the revised code correctly addresses the feedback while maintaining clarity, efficiency, and functionality.")
+        code_solution = self.code_gen_chain.invoke(f"Based on the feedback provided {state['messages']}, update the existing code {state['generation']} as needed. Ensure that the revised code correctly addresses the feedback while maintaining clarity, efficiency, and functionality.")
 
         messages = [
             (
