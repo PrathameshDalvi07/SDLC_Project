@@ -21,16 +21,16 @@ class SDLCNode:
         response = self.llm.invoke(prompt)
         messages = response
         initial_user_stories = response
-        extra_message = "__Is the user story correct?(yes/no) If no Please Specify your changes__"
+        extra_message = "__Is the user story correct? (yes/no) If no, please specify the required changes.__"
         return {"messages":messages, "initial_user_stories": initial_user_stories, "extra_message": extra_message}
     
     def revised_user_stories(self, state: State):
         print("revised_user_stories --------------------------------------")
-        prompt = f"Summarize the user’s project idea {state['revised_query']} into a short, clear description of user stories that explain what the user wants to build and why, focusing on the key features and goals of the project."
+        prompt = f"Given the revised query {state['revised_query']}, update the user stories to reflect the changes while maintaining clarity and alignment with the project's goals. If needed, refer to the previous {state['initial_user_stories']} to ensure consistency and completeness. The updated user stories should remain concise and clearly describe what the user wants to build and why, focusing on the key features and objectives."
         response = self.llm.invoke(prompt)
         messages = response
         initial_user_stories = response
-        extra_message = "__Is this improved User story is correct?(yes/no)__"
+        extra_message = "__Does this revised user story accurately reflect the requirements? (yes/no) If no, please specify the required changes.__"
         return {"messages":messages, "initial_user_stories": initial_user_stories, "extra_message": extra_message, "human_feedback": "", "iterations": 0}
     
     def human_loop_product_owner_review(self, state: State):
