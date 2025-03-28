@@ -26,7 +26,7 @@ class SDLCNode:
         response = self.llm.invoke(prompt)
         messages = response
         initial_user_stories = response
-        extra_message = "__Is the user story correct? ('yes'/'no') If 'no', please specify the required changes.__"
+        extra_message = "__Is the user story correct? ('yes'/'no') If 'no', specify the changes. Otherwise, the code will be generated.__"
         return {"messages":messages, "initial_user_stories": initial_user_stories, "extra_message": extra_message}
     
     def revised_user_stories(self, state: State):
@@ -143,7 +143,7 @@ class SDLCNode:
                 "messages": messages,
                 "iterations": iterations,
                 "error": "yes",
-                "extra_message": "__Provide feedback? ('yes'/'no') If 'yes',  please specify the required changes and if 'no', the code will run in the web browser.__",
+                "extra_message": "__Do you want any changes? (yes/no) If yes, specify. If no, the file will be saved.__",
             }
 
         # Check execution
@@ -177,7 +177,7 @@ class SDLCNode:
             "messages": messages,
             "iterations": iterations,
             "error": "no",
-            "extra_message": "__Provide feedback? (yes/no) If 'yes',  please specify the required changes and if 'no', the code will run in the web browser.__",
+            "extra_message": "__Do you want any changes? (yes/no) If yes, specify. If no, the file will be saved.__",
         }
     
     def decide_to_finish(self, state: State):
@@ -203,7 +203,7 @@ class SDLCNode:
         print("should_continue--------------------------------------  ",input)
         if input == "Code Review Human Feedback":
             return "Revised Code"
-        return "Code Run"
+        return "Save Code"
         # return "Design Docs"
 
     def human_loop_code_review(self, state: State):
@@ -231,7 +231,7 @@ class SDLCNode:
             )
         ]
         iterations = iterations + 1
-        return {"generation": code_solution, "messages": messages, "iterations": iterations, "extra_message": "__Any changes needed? (yes/no) If yes, specify. If no, the code will run in the browser.__"}
+        return {"generation": code_solution, "messages": messages, "iterations": iterations, "extra_message": "__Do you want any changes? (yes/no) If yes, specify. If no, the file will be saved.__"}
 
     def code_run(self, state: State):
         print("code_run --------------------------------------")
@@ -260,6 +260,25 @@ class SDLCNode:
         except Exception as e:
             print(f"Error executing code: {e}")
         return None
+    
+    def save_the_code(self, state: State):
+        print("save_the_code --------------------------------------")
+        """
+        Save the code to a file
+        Args:
+            state (dict): The current graph state
+        Returns:
+            str: Next node to call
+        """
+        code_solution = state["generation"]
+        code = code_solution.code
+        imports = code_solution.imports
+        filename = "generated_code.py"
+        with open(filename, "w") as f:
+            f.write(f"{imports}\n{code}")
+        st.write(f"__Code saved to {filename}.__")
+        return None
+    
     
     def write_test_cases(self, state: State):
         print("write_test_cases --------------------------------------")
