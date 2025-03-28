@@ -19,12 +19,23 @@ class DisplayResultStreamlit:
         messages = {'query':[("user", user_message)], 'messages': [("user", user_message)],"initial_user_stories":"", "extra_message": "", "human_feedback": "", "revised_query": user_message, "iterations" : 0, "generation": ""}
 
         if state.next != ():
+            print("state.next ========================================= ", state.next[0])
+            print("user message ========================================= ", user_message)
             if  state.next[0] == 'Product Owner Review':
                 if user_message != 'yes':
                     # st.session_state.messages.append(HumanMessage(content=user_message))
-                    with st.chat_message("user"):
-                        st.write(user_message)
+                    # with st.chat_message("user"):
+                    #     st.write(user_message)
                     messages = {'messages':"", "revised_query": user_message, "human_feedback": "Revised User Stories"}
+                    graph.update_state(config, messages)
+                messages = None
+            
+            elif state.next[0] == 'Code Review Human Feedback':
+                if user_message != 'no':
+                    # st.session_state.messages.append(HumanMessage(content=user_message))
+                    # with st.chat_message("user"):
+                    #     st.write(user_message)
+                    messages = {'messages': user_message, "revised_query": "", "human_feedback": "Code Review Human Feedback"}
                     graph.update_state(config, messages)
                 messages = None
 

@@ -2,7 +2,9 @@ from pydantic import BaseModel, Field
 from src.sdlc.state.state import State
 import importlib
 import subprocess
+import webbrowser
 import sys
+import streamlit as st
 
 max_iterations = 3
 
@@ -44,14 +46,14 @@ class SDLCNode:
         print("create_design_docs --------------------------------------")
         return {"messages":"", "initial_user_stories": "", "extra_message": ""}
     
-    def should_continue(self, state: State):
+    def should_with_user_stories_continue(self, state: State):
         input = state.get('human_feedback',None)
         print("should_continue--------------------------------------  ",input)
         if input == "Revised User Stories":
             return "Revised User Stories"
         return "Generate Code"
         # return "Design Docs"
-    
+
     def generate_code(self, state: State):
         """
         Generate a code solution
@@ -144,7 +146,7 @@ class SDLCNode:
                 "messages": messages,
                 "iterations": iterations,
                 "error": "yes",
-                "extra_message": "__Provide feedback? (yes/no) If 'no', the code will run in the web browser.__",
+                "extra_message": "__Provide feedback? (yes/no) If 'yes',  please specify the required changes and if 'no', the code will run in the web browser.__",
             }
 
         # Check execution
@@ -178,7 +180,7 @@ class SDLCNode:
             "messages": messages,
             "iterations": iterations,
             "error": "no",
-            "extra_message": "__Provide feedback? (yes/no) If 'no', the code will run in the web browser.__",
+            "extra_message": "__Provide feedback? (yes/no) If 'yes',  please specify the required changes and if 'no', the code will run in the web browser.__",
         }
     
     def decide_to_finish(self, state: State):
@@ -194,7 +196,75 @@ class SDLCNode:
 
         if error == "no" or iterations == max_iterations:
             print("---DECISION: FINISH---")
-            return "end"
+            return "Code Review Human Feedback"
         else:
             print("---DECISION: RE-TRY SOLUTION---")
-            return "generate_code"
+            return "Generate Code"
+        
+    def should_with_code_review_continue(self, state: State):
+        input = state.get('human_feedback',None)
+        print("should_continue--------------------------------------  ",input)
+        if input == "Code Review Human Feedback":
+            return "Revised Code"
+        return "END"
+        # return "Design Docs"
+
+    def human_loop_code_review(self, state: State):
+        print("human_loop_code_review --------------------------------------")
+        pass
+
+    def revised_code(self, state: State):
+        print("revised_code --------------------------------------")
+        """
+        Generate a code solution
+        Args:
+            state (dict): The current graph state
+        Returns:
+            state (dict): New key added to state, generation
+        """
+        
+        messages = state["initial_user_stories"].content
+        iterations = state["iterations"]
+        code_solution = self.code_gen_chain.invoke(f"Based on the feedback provided {state["messages"]}, update the existing code {state["generation"]} as needed. Ensure that the revised code correctly addresses the feedback while maintaining clarity, efficiency, and functionality.")
+
+        messages = [
+            (
+                "assistant",
+                f"{code_solution.prefix} || {code_solution.imports} \n{code_solution.code}",
+            )
+        ]
+        iterations = iterations + 1
+        return {"generation": code_solution, "messages": messages, "iterations": iterations, "extra_message": "__Any changes needed? (yes/no) If yes, specify. If no, the code will run in the browser.__"}
+
+    def code_run(self, state: State):
+        """
+        Run code in the Streamlit app.
+        Args:
+            state (dict): The current graph state
+        Returns:
+            str: Next node to call
+        """
+        st.write("### 🏃 Running Code in Streamlit")
+
+        code_solution = state["generation"]
+
+        imports = code_solution.imports
+        code = code_solution.code
+        try:
+            combined_code = f"{imports}\n{code}"
+            print(f"CODE TO TEST: {combined_code}")
+
+            result = subprocess.run(
+                    ["python", "-c", combined_code],
+                    capture_output=True,
+                    text=True
+                )
+            st.code(result.stdout if result.stdout else result.stderr, language="python")
+            print("Code executed successfully.")
+            print("Output:                      ", result)
+        except Exception as e:
+            print("---iiiiiii---")
+        return None
+    
+    def code_test(self, state: State):
+        pass
