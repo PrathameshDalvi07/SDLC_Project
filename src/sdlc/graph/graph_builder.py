@@ -21,13 +21,19 @@ class GraphBuilder:
         # self.graph_builder.add_node("Design Docs",self.sdlc_node.create_design_docs)
         self.graph_builder.add_node("Generate Code",self.sdlc_node.generate_code)
         self.graph_builder.add_node("Revised User Stories",self.sdlc_node.revised_user_stories)
+        self.graph_builder.add_node("Check Code",self.sdlc_node.code_check)
 
         self.graph_builder.add_edge(START,"User Stories")
         self.graph_builder.add_edge("User Stories","Product Owner Review")
         self.graph_builder.add_conditional_edges("Product Owner Review",self.sdlc_node.should_continue)
         self.graph_builder.add_edge("Revised User Stories","Product Owner Review")
         # self.graph_builder.add_edge("Design Docs",END)
-        self.graph_builder.add_edge("Generate Code",END)
+        self.graph_builder.add_edge("Generate Code","Check Code")
+        self.graph_builder.add_conditional_edges("Check Code", self.sdlc_node.decide_to_finish,
+        {
+            "end": END,
+            "Generate Code": "Generate Code",
+        },)
 
     def setup_graph(self):
         self.sdlc_graph()

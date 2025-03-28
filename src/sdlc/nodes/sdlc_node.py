@@ -1,5 +1,8 @@
 from pydantic import BaseModel, Field
 from src.sdlc.state.state import State
+import importlib
+import subprocess
+import sys
 
 max_iterations = 3
 
@@ -69,4 +72,129 @@ class SDLCNode:
             )
         ]
         iterations = iterations + 1
-        return {"generation": code_solution, "messages": messages, "iterations": iterations, "extra_message": ""}
+        return {"generation": code_solution, "messages": messages, "iterations": iterations, "extra_message": "__Rechecking the code for accuracy and improvements.__"}
+    
+    def code_check(self, state: State):
+        """
+        Check code
+
+        Args:
+            state (dict): The current graph state
+
+        Returns:
+            state (dict): New key added to state, error
+        """
+
+        print("---CHECKING CODE---")
+
+        # State
+        messages = state["messages"]
+        code_solution = state["generation"]
+        iterations = state["iterations"]
+
+        # Get solution components
+        imports = code_solution.imports
+        code = code_solution.code
+
+        def install_module(module_name: str):
+            """
+            Install the module using pip.
+
+            Args:
+                module_name (str): The name of the module to install
+            """
+            subprocess.check_call([sys.executable, "-m", "pip", "install", module_name])
+
+        def check_imports(imports: str):
+            """
+            Check if the necessary modules are installed and install them if not.
+
+            Args:
+                imports (str): The import statements
+
+            Raises:
+                ImportError: If a module cannot be installed
+            """
+            for line in imports.split('\n'):
+                if line.startswith('import') or line.startswith('from'):
+                    module_name = line.split()[1]
+                    if '.' in module_name:
+                        module_name = module_name.split('.')[0]
+                    if not importlib.util.find_spec(module_name):
+                        try:
+                            install_module(module_name)
+                        except Exception as e:
+                            raise ImportError(f"Module '{module_name}' is not available in the current environment and could not be installed. Error: {e}")
+
+        # Check imports
+        try:
+            check_imports(imports)
+            exec(imports)
+        except Exception as e:
+            print("---CODE IMPORT CHECK: FAILED---")
+            error_message = [
+                (
+                    "user",
+                    f"Your solution failed the import test. Here is the error: {e}. Reflect on this error and your prior attempt to solve the problem. (1) State what you think went wrong with the prior solution and (2) try to solve this problem again. Return the FULL SOLUTION. Use the code tool to structure the output with a prefix, imports, and code block:",
+                )
+            ]
+            messages += error_message
+            return {
+                "generation": code_solution,
+                "messages": messages,
+                "iterations": iterations,
+                "error": "yes",
+                "extra_message": "__Provide feedback? (yes/no) If 'no', the code will run in the web browser.__",
+            }
+
+        # Check execution
+        try:
+            combined_code = f"{imports}\n{code}"
+            print(f"CODE TO TEST: {combined_code}")
+            # Use a shared scope for exec
+            global_scope = {}
+            exec(imports, global_scope)  # Ensure imports are executed first
+            exec(code, global_scope)     # Then execute the code
+        except Exception as e:
+            print("---CODE BLOCK CHECK: FAILED---")
+            error_message = [
+                (
+                    "user",
+                    f"Your solution failed the code execution test: {e}) Reflect on this error and your prior attempt to solve the problem. (1) State what you think went wrong with the prior solution and (2) try to solve this problem again. Return the FULL SOLUTION. Use the code tool to structure the output with a prefix, imports, and code block:",
+                )
+            ]
+            messages += error_message
+            return {
+                "generation": code_solution,
+                "messages": messages,
+                "iterations": iterations,
+                "error": "yes",
+            }
+
+        # No errors
+        print("---NO CODE TEST FAILURES---")
+        return {
+            "generation": code_solution,
+            "messages": messages,
+            "iterations": iterations,
+            "error": "no",
+            "extra_message": "__Provide feedback? (yes/no) If 'no', the code will run in the web browser.__",
+        }
+    
+    def decide_to_finish(self, state: State):
+        """
+        Determines whether to finish.
+        Args:
+            state (dict): The current graph state
+        Returns:
+            str: Next node to call
+        """
+        error = state["error"]
+        iterations = state["iterations"]
+
+        if error == "no" or iterations == max_iterations:
+            print("---DECISION: FINISH---")
+            return "end"
+        else:
+            print("---DECISION: RE-TRY SOLUTION---")
+            return "generate_code"
