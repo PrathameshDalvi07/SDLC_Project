@@ -38,7 +38,7 @@ def load_sdlc_app():
                 
 
             except Exception as e:
-                 raise ValueError(f"Error Occurred with Exception : {e} \n\n Please refresh the page and try again.")
+                 raise ValueError("Please add Groq API key in the sidebar")
             
 
         
